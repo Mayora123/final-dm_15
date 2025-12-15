@@ -4,94 +4,85 @@ import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score, mean_squared_error
-from sklearn.preprocessing import StandardScaler
 
-st.set_page_config(page_title="Data Mining Final", layout="wide")
-
-st.title("📊 Clustering & Regresi Pelanggan Online Retail")
+st.title("Clustering & Regresi Pelanggan Online Retail")
 
 # =====================
-# LOAD DATA
+# LOAD DATA (FIX)
 # =====================
-df = pd.read_csv("Online_Retail_1002_rows.csv")
+df = pd.read_excel("Online_Retail_1002_rows.xlsx")
 
-st.subheader("📁 Contoh Data")
+st.subheader("Contoh Data")
 st.dataframe(df.head())
+
+# =====================
+# PREPROCESSING
+# =====================
+df['TotalPrice'] = df['Quantity'] * df['UnitPrice']
+
+customer_df = df.groupby('CustomerID').agg({
+    'Quantity': 'sum',
+    'TotalPrice': 'sum'
+}).reset_index()
+
+st.subheader("Data Setelah Agregasi Customer")
+st.dataframe(customer_df.head())
 
 # =====================
 # CLUSTERING
 # =====================
-st.subheader("🔹 Clustering Pelanggan (K-Means)")
-
-X = df[['Quantity', 'TotalPrice']]
-
-scaler = StandardScaler()
-X_scaled = scaler.fit_transform(X)
+X = customer_df[['Quantity', 'TotalPrice']]
 
 kmeans = KMeans(n_clusters=3, random_state=42)
-df['Cluster'] = kmeans.fit_predict(X_scaled)
+customer_df['Cluster'] = kmeans.fit_predict(X)
 
-# Visualisasi Clustering
+st.subheader("Hasil Clustering")
+st.dataframe(customer_df.head())
+
+# =====================
+# VISUALISASI CLUSTER
+# =====================
 fig, ax = plt.subplots()
 scatter = ax.scatter(
-    df['Quantity'],
-    df['TotalPrice'],
-    c=df['Cluster']
+    customer_df['Quantity'],
+    customer_df['TotalPrice'],
+    c=customer_df['Cluster']
 )
 ax.set_xlabel("Total Quantity")
 ax.set_ylabel("Total Price")
-ax.set_title("Hasil Clustering Pelanggan")
-
+ax.set_title("Hasil Clustering Pelanggan Online Retail")
 st.pyplot(fig)
 
-# Jumlah anggota cluster
-st.subheader("📌 Jumlah Anggota Tiap Cluster")
-st.write(df['Cluster'].value_counts().sort_index())
+# =====================
+# JUMLAH ANGGOTA CLUSTER
+# =====================
+st.subheader("Jumlah Anggota Tiap Cluster")
+cluster_counts = customer_df['Cluster'].value_counts().sort_index()
+st.write(cluster_counts)
 
 # =====================
 # REGRESI LINEAR
 # =====================
-st.subheader("📈 Regresi Linear (Quantity → Total Price)")
+st.subheader("Regresi Linear (Quantity → Total Price)")
 
-X_reg = df[['Quantity']]
-y = df['TotalPrice']
+X_reg = customer_df[['Quantity']]
+y_reg = customer_df['TotalPrice']
 
 model = LinearRegression()
-model.fit(X_reg, y)
+model.fit(X_reg, y_reg)
 
 y_pred = model.predict(X_reg)
 
-r2 = r2_score(y, y_pred)
-mse = mean_squared_error(y, y_pred)
+r2 = r2_score(y_reg, y_pred)
+mse = mean_squared_error(y_reg, y_pred)
 
-st.write("### 🔢 Hasil Regresi Linear")
-st.write(f"**R² Score :** {r2:.3f}")
-st.write(f"**MSE :** {mse:.2f}")
+st.write("R2 Score:", r2)
+st.write("MSE:", mse)
 
 coef_df = pd.DataFrame({
     "Variabel": ["Quantity"],
     "Koefisien": model.coef_
 })
 
-st.write("### 📌 Koefisien Regresi")
+st.subheader("Koefisien Regresi")
 st.dataframe(coef_df)
-
-# Grafik regresi
-fig2, ax2 = plt.subplots()
-ax2.scatter(df['Quantity'], df['TotalPrice'])
-ax2.plot(df['Quantity'], y_pred)
-ax2.set_xlabel("Quantity")
-ax2.set_ylabel("Total Price")
-ax2.set_title("Regresi Linear Quantity vs Total Price")
-
-st.pyplot(fig2)
-
-# =====================
-# KESIMPULAN
-# =====================
-st.subheader("📝 Kesimpulan")
-st.markdown("""
-- Clustering membagi pelanggan menjadi **3 segmen**: kecil, menengah, dan besar.
-- Regresi menunjukkan **Quantity berpengaruh positif terhadap Total Price**.
-- Model regresi cukup baik dengan **R² > 0.7**.
-""")
