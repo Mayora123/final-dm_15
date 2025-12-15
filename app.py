@@ -13,7 +13,7 @@ st.title("📊 Clustering & Regresi Pelanggan Online Retail")
 # =====================
 # LOAD DATA
 # =====================
-df = pd.read_csv("dataset.csv")
+df = pd.read_csv("Online_Retail_1002_rows.csv")
 
 st.subheader("📁 Contoh Data")
 st.dataframe(df.head())
